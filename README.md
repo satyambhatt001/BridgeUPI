@@ -1,6 +1,6 @@
-# UPI Offline Mesh — Demo
+# BridgeUPI — Secure Offline UPI Transactions via Mesh Networking
 
-A Spring Boot backend that demonstrates **offline UPI payments routed through a Bluetooth-style mesh network**. You're in a basement with zero connectivity. You send your friend ₹500. Your phone encrypts the payment, broadcasts it to nearby phones, and the packet hops device-to-device until *some* phone walks outside, gets 4G, and silently uploads it to this backend. The backend decrypts, deduplicates, and settles.
+BridgeUPI is a secure offline UPI payment system that routes encrypted transactions through a Bluetooth-style mesh network. You're in a basement with zero connectivity. You send your friend ₹500. Your phone encrypts the payment, broadcasts it to nearby phones, and the packet hops device-to-device until *some* phone walks outside, gets 4G, and silently uploads it to this backend. The backend decrypts, deduplicates, and settles.
 
 This repo is the **server side** of that system, plus a software simulator of the mesh so you can demo the whole flow on a single laptop without any real Bluetooth hardware.
 
@@ -58,7 +58,7 @@ The first run downloads Maven (~10 MB) and all dependencies (~80 MB) — give it
 
 ### Open the dashboard
 
-Once you see `Started UpiMeshApplication in X.XXX seconds`, open:
+Once you see `Started BridgeUPI in X.XXX seconds`, open:
 
 **http://localhost:8080**
 
@@ -246,7 +246,7 @@ See `BridgeIngestionService.java` for the freshness check.
 ## File-by-file walkthrough
 
 ```
-upi-offline-mesh/
+BridgeUPI/
 ├── pom.xml                                  Maven build, Spring Boot 3.3, Java 17
 ├── mvnw, mvnw.cmd                           Maven wrapper (no install needed)
 ├── README.md                                this file
@@ -375,14 +375,28 @@ The cryptography and idempotency code is essentially production-shaped. The infr
 
 ## Honest limitations of the concept
 
-I want this README to be useful to you when someone reviews the project, so let's be straight about what this design **does not** solve. These are not implementation bugs — they're inherent to "no internet, anywhere in the chain":
+These are not implementation bugs — they're inherent to "no internet, anywhere in the chain." BridgeUPI's mesh-routed deferred settlement model is powerful, but review these constraints before pitching it as real-time offline UPI:
 
 1. **The receiver has no way to verify the sender has the funds.** When sender hands receiver a phone showing "₹500 sent," it's an IOU, not a settled payment. If the sender's account is empty when the packet finally reaches the backend, the settlement will be `REJECTED` and the receiver is out ₹500 with no recourse. *This is why real offline UPI (UPI Lite) uses a pre-funded hardware-backed wallet* — to give cryptographic proof of available funds offline.
 2. **A malicious sender can double-spend offline.** With ₹500 in their account, they could send a packet to Bob in basement A, walk to basement B, and send another ₹500 to Carol. Whichever packet hits the backend first wins; the other gets `REJECTED`. Same root cause as #1.
 3. **Bluetooth in real life is hard.** Background BLE on Android is heavily throttled since Android 8. iOS peripheral mode is locked down. Two strangers' phones reliably forming a GATT connection while the apps aren't actively open is genuinely difficult and a lot of energy. This demo skips that problem entirely by simulating the mesh.
 4. **Privacy / liability.** A stranger carries your encrypted transaction packet on their phone. They can't read it, but its existence is metadata. In a real deployment you'd want to think about regulatory disclosures and what happens if a device is seized.
 
-For a college / portfolio project: name the concept honestly as **"mesh-routed deferred settlement"** rather than "real-time offline UPI," and you'll have a much stronger pitch. The cryptography and idempotency work here is real engineering and worth showing off.
+For a college / portfolio project: name the concept honestly as **"mesh-routed deferred settlement"** rather than "real-time offline UPI," and you'll have a much stronger pitch. The cryptography and idempotency work in BridgeUPI is real engineering and worth showing off.
+
+---
+
+## Author
+
+Developed by **Satyam Bhatt**
+
+### Project Highlights
+
+- Offline UPI transaction routing through a Bluetooth mesh network
+- Hybrid RSA + AES-GCM encryption
+- Idempotency-based duplicate prevention
+- Replay attack protection using TTL and nonces
+- Spring Boot backend with transaction settlement and ledger tracking
 
 ---
 
